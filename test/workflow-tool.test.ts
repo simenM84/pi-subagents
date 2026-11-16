@@ -683,6 +683,21 @@ describe("SubagentWorkflow tool — script vs scriptPath vs name", () => {
     ]);
   });
 
+  it("forwards each progress batch on pi.events while the run is going", async () => {
+    const script = 'export const meta = { name: "progress", description: "d", phases: [{ title: "Scan" }] };\nphase("Scan")\nlog("hello")\n';
+    const result = await tools.get("SubagentWorkflow").execute("tc-pr", { script }, undefined, undefined, workflowCtx());
+    const runId = /Task ID: (wf_\S+)/.exec(textOf(result))![1];
+    const progress = () => booted.pi.events.emit.mock.calls
+      .filter(([event]: [string]) => event === "subagents:workflow_progress")
+      .map(([, payload]: [string, { id: string; entries: unknown[] }]) => payload);
+
+    await vi.waitFor(() => expect(progress().flatMap(p => p.entries)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "workflow_phase", title: "Scan" }),
+      expect.objectContaining({ type: "workflow_log", message: "hello" }),
+    ])));
+    expect(progress().every(p => p.id === runId)).toBe(true);
+  });
+
   it("prefers scriptPath over script when both are given", async () => {
     const path = join(hermetic.dir, "wf.js");
     writeFileSync(path, fileScript);
