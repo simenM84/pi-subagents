@@ -2,7 +2,7 @@
  * workflow-card.ts — the inline transcript card for a running workflow.
  *
  * ```
- * ▸ Workflow  review-changes                       3/7 agents · 1m12s
+ * ● Workflow  review-changes                       3/7 agents · 1m12s
  *   Review changed files across dimensions, verify each finding
  *   ╭─ Review
  *   │ ├─ ✔ review:bugs      · Explore · haiku · 18.4k · 12 tool calls · 42s
@@ -65,7 +65,7 @@ const DEFAULT_WIDTH = 80;
  * ------------------------------------------------------------------------- */
 
 export interface WorkflowGlyphs {
-  /** Tool-title pointer, matching the Agent tool's `▸`. */
+  /** Tool-title pointer, matching the Agent tool's `●`. */
   pointer: string;
   tick: string;
   cross: string;
@@ -87,7 +87,7 @@ export interface WorkflowGlyphs {
 }
 
 export const UNICODE_GLYPHS: WorkflowGlyphs = {
-  pointer: "▸",
+  pointer: "●",
   tick: "✔",
   cross: "✘",
   running: "⟳",
@@ -107,7 +107,7 @@ export const UNICODE_GLYPHS: WorkflowGlyphs = {
  * either way.
  */
 export const ASCII_GLYPHS: WorkflowGlyphs = {
-  pointer: ">",
+  pointer: "#",
   tick: "√",
   cross: "×",
   running: "*",
@@ -170,7 +170,7 @@ export interface WorkflowCardInput {
   /** Swap in the ASCII glyph tier for terminals without unicode. */
   ascii?: boolean;
   /**
-   * Lead with `▸ SubagentWorkflow`.
+   * Lead with `● SubagentWorkflow`.
    *
    * True where the card stands alone — the session entry a flag-launched run
    * writes, which has no tool call above it to say what it is. False as a tool
@@ -312,7 +312,7 @@ export function layoutWorkflowCard(input: WorkflowCardInput): WorkflowCardLine[]
 
   // ---- Header: `<name>` with the stats flush right ----
   // The tool name appears only when nothing above the card already carries it.
-  // As a tool result there is a `▸ SubagentWorkflow …` call line directly above,
+  // As a tool result there is a `● SubagentWorkflow …` call line directly above,
   // and repeating it put two near-identical pointer lines back to back.
   const left: WorkflowCardLine = input.showToolTitle
     ? [

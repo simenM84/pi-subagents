@@ -478,6 +478,68 @@ describe("FleetList rendering", () => {
     expect(lines.some(l => l.includes("queued one"))).toBe(false);
   });
 
+  it("shows an agent once its session lands after spawn, without another update()", () => {
+    vi.useFakeTimers();
+    try {
+      const rec = makeRecord({ id: "late", description: "late session", session: undefined });
+      const h = harness([rec]);
+      h.fleet.ensureTimer(); // what every spawn path does, before the session exists
+      h.fleet.update();
+      expect(h.render()).toEqual([]);
+      rec.session = FAKE_SESSION as any; // onSessionCreated, after runAgent's awaits
+      vi.advanceTimersByTime(250);
+      expect(h.render().some(l => l.includes("late session"))).toBe(true);
+      h.fleet.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("re-registers after pi disposes the widget, but not after a plain invalidate", () => {
+    const setWidget = vi.fn();
+    const fleet = new FleetList(fakeManager([makeRecord()]), new Map());
+    fleet.setUICtx({
+      setWidget, onTerminalInput: () => () => {}, getEditorText: () => "",
+      notify: () => {}, custom: (() => new Promise<undefined>(() => {})) as FleetUICtx["custom"],
+    });
+    fleet.update();
+    expect(setWidget).toHaveBeenCalledTimes(1);
+    const component = setWidget.mock.calls[0][1]({ requestRender: () => {} }, theme);
+
+    component.invalidate();
+    fleet.update();
+    expect(setWidget).toHaveBeenCalledTimes(1);
+
+    component.dispose(); // pi: clearExtensionWidgets / key replaced
+    fleet.update();
+    expect(setWidget).toHaveBeenCalledTimes(2);
+    fleet.dispose();
+  });
+
+  it("stops the refresh timer once no agent is pending a session", () => {
+    vi.useFakeTimers();
+    try {
+      const rec = makeRecord({ id: "late", session: undefined });
+      const listAgents = vi.fn(() => [rec]);
+      const manager = { listAgents, abort: () => true } as unknown as AgentManager;
+      const fleet = new FleetList(manager, new Map());
+      fleet.setUICtx({
+        setWidget: () => {}, onTerminalInput: () => () => {}, getEditorText: () => "",
+        notify: () => {}, custom: (() => new Promise<undefined>(() => {})) as FleetUICtx["custom"],
+      });
+      fleet.ensureTimer();
+      fleet.update();
+      rec.status = "error"; // died before its session was created
+      vi.advanceTimersByTime(250);
+      const after = listAgents.mock.calls.length;
+      vi.advanceTimersByTime(1000);
+      expect(listAgents.mock.calls.length).toBe(after);
+      fleet.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("collapses overflow into a '↓ N more' indicator", () => {
     const agents = Array.from({ length: 8 }, (_, i) =>
       makeRecord({ id: `a${i}`, description: `report ${i}` }));

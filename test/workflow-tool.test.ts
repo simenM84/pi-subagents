@@ -667,6 +667,22 @@ describe("SubagentWorkflow tool — script vs scriptPath vs name", () => {
     expect(existsSync(scriptLine!.slice("Script: ".length))).toBe(true);
   });
 
+  it("announces the run on pi.events when it starts and when it settles", async () => {
+    const result = await tools.get("SubagentWorkflow").execute("tc-ev", { script: inlineScript }, undefined, undefined, workflowCtx());
+    const runId = /Task ID: (wf_\S+)/.exec(textOf(result))![1];
+    const emitted = () => booted.pi.events.emit.mock.calls.filter(([event]: [string]) => event.startsWith("subagents:workflow_"));
+
+    expect(emitted()[0]).toEqual([
+      "subagents:workflow_started",
+      { id: runId, name: "from-inline", description: "inline source", toolCallId: "tc-ev" },
+    ]);
+    await vi.waitFor(() => expect(emitted()).toHaveLength(2));
+    expect(emitted()[1]).toEqual([
+      "subagents:workflow_settled",
+      expect.objectContaining({ id: runId, name: "from-inline", status: "completed", agentCount: 0 }),
+    ]);
+  });
+
   it("prefers scriptPath over script when both are given", async () => {
     const path = join(hermetic.dir, "wf.js");
     writeFileSync(path, fileScript);

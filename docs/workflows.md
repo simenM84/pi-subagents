@@ -57,7 +57,7 @@ Three surfaces, in increasing order of detail.
 A **card in the transcript**, updating as the run goes:
 
 ```text
-▸ SubagentWorkflow  auth-audit                       3/7 agents · 1m12s
+● SubagentWorkflow  auth-audit                       3/7 agents · 1m12s
   Find routes missing auth checks, then verify each finding
   ╭─ Scan
   │ └─ ✔ discover        · Explore · haiku 4.5 · 26.4k · 8 tool calls · 25s

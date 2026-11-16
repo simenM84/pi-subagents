@@ -73,7 +73,7 @@ const styled = (over: DialogOverrides): string[] =>
 const stripMarkup = (line: string) => line.replace(/<\/?[a-zA-Z]+>|\*/g, "");
 
 /** Strip the markup and a heading's focus marker / padding. */
-const bare = (line: string) => stripMarkup(line).replace(/^[\s▸>]+/, "");
+const bare = (line: string) => stripMarkup(line).replace(/^[\s●#]+/, "");
 
 /* --- reading the framed layout ---------------------------------------------
  *
@@ -210,7 +210,7 @@ describe("dialog glyph mapping", () => {
       expect(visibleWidth(ASCII_DIALOG_GLYPHS[key]), key).toBe(1);
     }
     const joined = dialog({ progress: live, ascii: true }).join("\n");
-    expect(joined).not.toMatch(/[✔✘◌❯▸]/);
+    expect(joined).not.toMatch(/[✔✘◌❯●]/);
     expect(joined).toContain("√ done");
     expect(joined).toContain("o queued");
   });

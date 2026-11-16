@@ -204,7 +204,10 @@ export class FleetList {
 
   /** Re-register/refresh the below-editor widget; clears it when nothing remains. */
   update(): void {
-    if (!this.ui) return;
+    if (!this.ui) {
+      if (this.timer) { clearInterval(this.timer); this.timer = undefined; }
+      return;
+    }
     // A run with no agents of its own left in the list is still worth a row —
     // it is the thing the user opens to see what its children did. Read off the
     // roster for the same reason activation does: two counts of "is there
@@ -217,7 +220,10 @@ export class FleetList {
         this.widgetRegistered = false;
         this.tui = undefined;
       }
-      if (this.timer) { clearInterval(this.timer); this.timer = undefined; }
+      // An agent is spawned before its session exists, and nothing else calls
+      // update() when the session lands — so keep ticking until it can show.
+      if (this.enabled && this.hasSessionlessAgent()) this.ensureTimer();
+      else if (this.timer) { clearInterval(this.timer); this.timer = undefined; }
       this.active = false;
       this.selectedIndex = 0;
       return;
@@ -231,7 +237,10 @@ export class FleetList {
         this.tui = tui;
         return {
           render: (w: number) => this.renderBar(w, theme),
-          invalidate: () => { this.widgetRegistered = false; this.tui = undefined; },
+          // renderBar caches nothing, and TUI.invalidate() (resize, theme) does not
+          // unmount the widget. pi calls dispose() when it does unmount it.
+          invalidate: () => {},
+          dispose: () => { this.widgetRegistered = false; this.tui = undefined; },
         };
       }, { placement: "belowEditor" });
       this.widgetRegistered = true;
@@ -259,6 +268,12 @@ export class FleetList {
         || (a.completedAt != null && now - a.completedAt < FINISHED_LINGER_MS)
       ))
       .sort((a, b) => a.startedAt - b.startedAt);
+  }
+
+  /** A top-level agent that is live but not yet listable because it has no session. */
+  private hasSessionlessAgent(): boolean {
+    return this.manager.listAgents().some(a =>
+      isTopLevelAgent(a) && !a.session && (a.status === "running" || a.status === "queued"));
   }
 
   /**

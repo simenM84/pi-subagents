@@ -324,7 +324,7 @@ describe("ASCII fallback tier", () => {
       ascii: true,
       progress: [agentEntry({ index: 0, label: "x" })],
     }).join("\n");
-    expect(joined).not.toMatch(/[╭╰├└│⎿▸⟳]/);
+    expect(joined).not.toMatch(/[╭╰├└│⎿●⟳]/);
     for (const key of ["groupTop", "groupBottom", "branch", "lastBranch", "running", "tick", "cross"] as const) {
       expect(visibleWidth(ASCII_GLYPHS[key])).toBeGreaterThan(0);
     }
@@ -347,7 +347,7 @@ describe("header", () => {
   });
 
   it("names the workflow, and the tool only when it stands alone", () => {
-    // As a tool result there is a `▸ SubagentWorkflow …` call line directly
+    // As a tool result there is a `● SubagentWorkflow …` call line directly
     // above, so repeating it here put two near-identical pointer lines back to
     // back. A session entry has no such line and asks for the prefix.
     const [asResult] = card({ progress: sevenAgents });
@@ -355,7 +355,7 @@ describe("header", () => {
     expect(asResult).not.toContain("SubagentWorkflow");
 
     const [standalone] = card({ progress: sevenAgents, showToolTitle: true });
-    expect(standalone).toMatch(/^▸ SubagentWorkflow {2}review-changes/);
+    expect(standalone).toMatch(/^● SubagentWorkflow {2}review-changes/);
   });
 
   it("appends the terminal suffix for each stopped status", () => {

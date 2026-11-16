@@ -1835,7 +1835,7 @@ Terse command-style prompts produce shallow, generic work.
         restoreBackground: rowBackground,
         bold: true,
       });
-      return new Text(rowBackground + "▸ " + name + (desc ? "  " + theme.fg("muted", desc) : ""), 0, 0);
+      return new Text(rowBackground + "● " + name + (desc ? "  " + theme.fg("muted", desc) : ""), 0, 0);
     },
 
     renderResult(result, { expanded, isPartial }, theme, renderContext) {
@@ -2577,6 +2577,13 @@ Terse command-style prompts produce shallow, generic work.
    * detached — a rejection would surface as an unhandled one.
    */
   async function runWorkflowTask(ctx: ExtensionContext, task: WorkflowTask): Promise<void> {
+    const name = task.meta?.name ?? task.workflowName ?? task.id;
+    pi.events.emit("subagents:workflow_started", {
+      id: task.id,
+      name,
+      description: task.meta?.description ?? "",
+      ...(task.toolCallId !== undefined ? { toolCallId: task.toolCallId } : {}),
+    });
     try {
       const result = await runWorkflow({
         script: task.script,
@@ -2605,6 +2612,15 @@ Terse command-style prompts produce shallow, generic work.
     } catch (err) {
       failWorkflowTask(task, err instanceof Error ? err.message : String(err));
     }
+    pi.events.emit("subagents:workflow_settled", {
+      id: task.id,
+      name,
+      status: task.status,
+      durationMs: elapsedMs(task, Date.now()),
+      agentCount: task.agentCount,
+      doneCount: task.doneCount,
+      ...(task.error !== undefined ? { error: task.error } : {}),
+    });
   }
 
   /**
@@ -2692,7 +2708,7 @@ Terse command-style prompts produce shallow, generic work.
 
     renderCall(args, theme) {
       return new Text(
-        `${theme.fg("toolTitle", "▸ ")}${theme.bold(theme.fg("toolTitle", "SubagentWorkflow"))}  ${theme.fg("muted", workflowCallName(args))}`,
+        `${theme.fg("toolTitle", "● ")}${theme.bold(theme.fg("toolTitle", "SubagentWorkflow"))}  ${theme.fg("muted", workflowCallName(args))}`,
         0,
         0,
       );
